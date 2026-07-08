@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>HLA Polymorphism &amp; the MHC Assembly Challenge — Cathy Liu</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body { font-family: Georgia, serif; max-width: 720px; margin: 0 auto;
+         padding: 2.5rem 1.5rem 4rem; line-height: 1.65; color: #222; background: #fff; }
+  h1, h2, h3 { font-family: -apple-system, system-ui, sans-serif; }
+  h1 { font-size: 1.45rem; margin-bottom: .2rem; }
+  .byline { font-family: system-ui, sans-serif; font-size: .85rem; color: #777; margin-bottom: 2rem; }
+  h2 { font-size: 1.1rem; margin-top: 2.5rem; border-bottom: 1px solid #eee; padding-bottom: .3rem; }
+  .note { background: #f6f6f4; border-left: 3px solid #999; padding: .8rem 1rem;
+          font-family: system-ui, sans-serif; font-size: .85rem; color: #444; margin: 1.2rem 0; }
+  figure { margin: 1.2rem 0; }
+  figure img { max-width: 100%; display: block; }
+  figcaption { font-family: system-ui, sans-serif; font-size: .78rem; color: #777; margin-top: .4rem; }
+  a { color: #2255aa; }
+  .meta { font-family: system-ui, sans-serif; font-size: .8rem; color: #888;
+          margin-top: 3rem; border-top: 1px solid #eee; padding-top: 1rem; }
+  .tag { display: inline-block; font-family: system-ui, sans-serif; font-size: .75rem;
+         background: #eef2f8; color: #2255aa; padding: .15rem .5rem;
+         border-radius: 3px; margin-right: .3rem; }
+  .highlight  { background: #fff5f5; border-left: 3px solid #c0392b; padding: .6rem 1rem;
+                font-family: system-ui, sans-serif; font-size: .88rem; margin: 1rem 0; }
+  .highlight2 { background: #f0f8ff; border-left: 3px solid #1a5c8a; padding: .6rem 1rem;
+                font-family: system-ui, sans-serif; font-size: .88rem; margin: 1rem 0; }
+  .highlight3 { background: #f5fff0; border-left: 3px solid #27ae60; padding: .6rem 1rem;
+                font-family: system-ui, sans-serif; font-size: .88rem; margin: 1rem 0; }
+  code { background: #f4f4f4; padding: .1em .35em; border-radius: 3px;
+         font-family: ui-monospace, monospace; font-size: .88em; }
+</style>
+</head>
+<body>
+
+<h1>Why Is MHC Assembly Hard? A Look at the HLA Polymorphism Landscape</h1>
+<div class="byline">Cathy Liu · cathyliu014@gmail.com · personal exploratory project, July 2026</div>
+
+<span class="tag">HLA</span>
+<span class="tag">immunogenomics</span>
+<span class="tag">MHC assembly</span>
+<span class="tag">MHConstructor</span>
+<span class="tag">IPD-IMGT/HLA</span>
+<span class="tag">bioinformatics</span>
+<span class="tag">Python</span>
+
+<p style="margin-top:1.2rem">
+The <a href="https://hollenbachlab.ucsf.edu/" target="_blank">Hollenbach lab</a> builds bioinformatics
+tools for one of the hardest regions in the human genome: the Major Histocompatibility Complex (MHC).
+Their recently published
+<a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-024-03412-6" target="_blank">MHConstructor
+(Genome Biology, 2024)</a> is, to date, the only self-contained pipeline for de novo MHC assembly
+from short-read sequencing data. The key insight is that standard assemblers fail on MHC because of
+a combination of extreme allelic polymorphism and large structural variation — MHConstructor addresses
+this with <em>haplotype binning</em>, separately assembling reads attributable to each of the two
+diploid haplotypes before scaffolding to a haplotype reference.
+</p>
+
+<p>
+I was curious what that polymorphism landscape actually looks like in numbers, so I pulled real allele
+counts from the
+<a href="https://www.ebi.ac.uk/ipd/imgt/hla/" target="_blank">IPD-IMGT/HLA database</a>
+(release 3.64.0, 46,005 total alleles) and built two figures to visualize the scale of the problem.
+</p>
+
+<div class="note">
+<strong>What this is.</strong> Personal exploratory analysis, not novel research. All allele count data
+are fetched directly from the official IPD-IMGT/HLA GitHub release
+(<a href="https://github.com/ANHIG/IMGTHLA" target="_blank">ANHIG/IMGTHLA</a>).
+Growth milestone data are from Robinson J et al.,
+"25 years of the IPD-IMGT/HLA Database," <em>HLA</em> 2024; doi:10.1111/tan.15549.
+</div>
+
+<h2>How many alleles does each HLA locus have?</h2>
+
+<figure>
+  <img src="hla_polymorphism.svg?v=1"
+       alt="Horizontal bar chart of allele counts per HLA locus from IPD-IMGT/HLA release 3.64.0">
+  <figcaption>Allele counts for major HLA loci. Release 3.64.0 (2025). HLA-B (11,110 alleles) is the most
+  polymorphic locus in the human genome. Classical class I loci (A, B, C) and class II loci (DRB1,
+  DPB1, DQB1) together account for over 37,000 of the 46,005 total known alleles. Raw counts fetched
+  via Python from the IMGT/HLA GitHub repository.</figcaption>
+</figure>
+
+<div class="highlight">
+<strong>HLA-B alone has 11,110 known alleles — roughly one new allele discovered every few days.</strong>
+For a diploid sample, the two HLA-B alleles are drawn from this pool. When sequencing reads from both
+alleles land on the same genomic segment, a conventional assembler collapses them into a chimeric
+consensus, losing haplotype-specific variants. This is the core problem MHConstructor solves with
+haplotype binning: separate the reads by haplotype first, then assemble each independently.
+</div>
+
+<div class="highlight2">
+<strong>Class II (DRB1, DPB1, DQB1) adds structural complexity on top of sequence polymorphism.</strong>
+The HLA class II region contains large insertions and deletions between haplotypes — for example, the
+DR52/DR53/DR51 supertypes involving DRB3/4/5 copy-number variation. MHConstructor generates
+intermediate haplotype-specific consensus sequences and scaffolds assemblies to the relevant haplotype
+reference to maintain structural integrity. This is why no generic assembler (SPAdes, Velvet, MEGAHIT)
+works well here without MHC-specific pre-processing.
+</div>
+
+<h2>The reference is always growing — static assemblies go stale</h2>
+
+<figure>
+  <img src="allele_growth.svg?v=1"
+       alt="Line plot of total IPD-IMGT/HLA allele count growth from 1998 to 2024">
+  <figcaption>Total allele count in IPD-IMGT/HLA database by year. Growth has been roughly exponential,
+  driven by next-generation sequencing adoption after ~2010. Source: Robinson et al. 2024 (HLA journal,
+  25-year review), supplemented with 2024 release statistics.</figcaption>
+</figure>
+
+<div class="highlight3">
+<strong>NGS after 2010 caused a 6-fold increase in known alleles by 2024 — and discovery is ongoing.</strong>
+This matters for assembly strategy: a pipeline that directly maps short reads to a fixed reference panel
+will misassemble reads from alleles discovered after the reference was built. MHConstructor's
+haplotype-informed scaffolding approach uses the reference to <em>guide</em> assembly order rather than
+as a mapping target, which is more robust to novel alleles. The ongoing growth also means that quality
+metrics (like the reported 0.031% base-call error rate in the Genome Biology 2024 paper) should be
+re-benchmarked as the reference expands.
+</div>
+
+<h2>An open question I find compelling</h2>
+
+<p>
+MHConstructor's haplotype binning accuracy depends on being able to distinguish reads from the two
+haplotypes. The harder case is a <em>homozygous-like</em> sample — where both HLA alleles at a given
+locus are very similar (e.g., differ at only 2–3 positions). In those samples, binning becomes
+ambiguous and mis-binned reads could corrupt the assembly of either haplotype.
+</p>
+
+<p>
+A natural computational extension: can we predict, before assembly, which samples will be hardest
+for MHConstructor based on the pairwise sequence distance between their two haplotype alleles?
+This would require:
+</p>
+
+<ol>
+<li>Estimating haplotype identity from a rapid pre-pass (e.g., k-mer similarity between read sets)</li>
+<li>Flagging samples where the two haplotypes fall below a distance threshold</li>
+<li>Triggering a different assembly strategy — or longer read data — for those samples</li>
+</ol>
+
+<p>
+The IMGT/HLA database already contains pairwise alignment data for each allele. Computing the
+distribution of minimum pairwise distances at each locus (especially HLA-B and DRB1, the most
+polymorphic) would give a direct estimate of how often this "near-identical haplotype" problem occurs
+in population cohorts.
+</p>
+
+<h2>Connection to the lab's work</h2>
+<ul>
+<li>
+<strong>MHConstructor (Genome Biology 2024):</strong> I'd like to contribute to extending the pipeline's
+coverage — specifically to the near-identical haplotype case and to novel allele detection. My
+computational background (Python, genomic data pipelines, statistical analysis) maps directly onto
+this kind of work.
+</li>
+<li>
+<strong>PING and C4Investigator:</strong> The same read-binning challenge applies to KIR (copy-number
+variable, highly homologous loci) and C4 (structural CNV). I'm interested in contributing to the
+validation benchmarking pipelines for these tools as well.
+</li>
+<li>
+<strong>BIGDAWG and association analysis:</strong> The lab's case-control analysis work in MS and
+Parkinson's disease connects immunogenetics to clinical outcomes — I'd like to contribute to the
+statistical analysis side as well, particularly in understanding how assembly quality propagates into
+downstream association statistics.
+</li>
+<li>
+I think my combination of practical lab experience and computational background is where I can be
+most useful to your lab.
+</li>
+</ul>
+
+<h2>Methods</h2>
+<p>
+Data retrieved July 2026.
+Per-locus allele counts from IPD-IMGT/HLA release 3.64.0 via
+<a href="https://raw.githubusercontent.com/ANHIG/IMGTHLA/Latest/Allelelist.txt" target="_blank">ANHIG/IMGTHLA GitHub</a>
+(Allelelist.txt, Latest branch). Total: 46,005 alleles across 47 loci.
+Growth milestone data from Robinson J et al., "25 years of the IPD-IMGT/HLA Database,"
+<em>HLA</em> 2024; doi:10.1111/tan.15549.
+Figures: pure Python SVG generation, no external plotting libraries.
+Code: <a href="fetch_data.py">fetch_data.py</a>, <a href="make_figures.py">make_figures.py</a>.
+Raw data: <a href="allele_counts.tsv">allele_counts.tsv</a>, <a href="allele_growth.tsv">allele_growth.tsv</a>.
+</p>
+
+<div class="meta">
+Cathy Liu — cathyliu014@gmail.com | 415-216-3799<br>
+<a href="https://liuzhitong330.github.io/tvb-llm-robust-neurostim/" target="_blank">Epilepsy neurostimulation project</a> ·
+<a href="https://arxiv.org/abs/2606.04339" target="_blank">arXiv:2606.04339</a>
+</div>
+
+</body>
+</html>
